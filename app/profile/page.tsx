@@ -10,7 +10,7 @@ export default function ProfilePage() {
     <div className="min-h-screen bg-white flex flex-col">
       <header className="sticky top-0 bg-white border-b border-[#dbdbdb] px-4 py-3 flex items-center justify-between z-10">
         <div className="flex items-center gap-2 max-w-[470px] mx-auto w-full">
-          <h1 className="text-xl font-semibold text-black flex-1">sunflower_power77</h1>
+          <h1 className="text-xl font-semibold text-black flex-1">Deepak ji</h1>
           <div className="flex items-center gap-4">
             <button className="p-1 text-2xl">+</button>
             <button className="p-1 text-2xl">☰</button>
@@ -25,7 +25,7 @@ export default function ProfilePage() {
               <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 p-[2px]">
                 <div className="w-full h-full rounded-full bg-white p-[3px]">
                   <img
-                    src="/user-profile.jpg"
+                    src="/user-profile.jpeg"
                     alt="sunflower_power77"
                     className="w-full h-full rounded-full object-cover"
                   />
@@ -53,8 +53,8 @@ export default function ProfilePage() {
           </div>
 
           <div className="mb-4">
-            <p className="font-semibold text-sm text-black">Autumn Lopez</p>
-            <p className="text-sm text-black">Big into hiking & nature 🌲</p>
+            <p className="font-semibold text-sm text-black">C for CR</p>
+            <p className="text-sm text-black">Ek bihari 100 pe bhari🌲</p>
           </div>
 
           <button className="w-full rounded-lg border border-[#dbdbdb] text-sm font-semibold py-2 mb-2 bg-transparent hover:bg-gray-50">

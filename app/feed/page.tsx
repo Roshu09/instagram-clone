@@ -1,10 +1,10 @@
 "use client"
 
-import { useEffect, useState, useRef, useCallback } from "react"
+import { useEffect, useRef, useState } from "react"
+import Link from "next/link"
+import { Home, Search, PlusSquare, Clapperboard, User } from "lucide-react"
 import PostCard from "@/components/post-card"
 import { StoryCircle } from "@/components/story-circle"
-import { Home, Search, PlusSquare, Clapperboard, User } from "lucide-react"
-import Link from "next/link"
 
 type Comment = {
   username: string
@@ -27,52 +27,67 @@ type Post = {
 export default function FeedPage() {
   const [posts, setPosts] = useState<Post[]>([])
   const [page, setPage] = useState(1)
-  const [loading, setLoading] = useState(false)
   const [hasMore, setHasMore] = useState(true)
-  const observerTarget = useRef<HTMLDivElement>(null)
+  const [loading, setLoading] = useState(false)
 
-  const loadPosts = useCallback(async () => {
-    if (loading || !hasMore) return
+  const observerTarget = useRef<HTMLDivElement | null>(null)
+  const isFetching = useRef(false)
 
+  // 🔹 Fetch posts (single source of truth)
+  const fetchPosts = async (pageToLoad: number) => {
+    if (isFetching.current || !hasMore) return
+
+    isFetching.current = true
     setLoading(true)
+
     try {
-      const res = await fetch(`/api/posts?page=${page}&limit=5`)
+      const res = await fetch(`/api/posts?page=${pageToLoad}&limit=5`)
       const data = await res.json()
 
-      setPosts((prev) => [...prev, ...data.posts])
+      setPosts((prev) => {
+        const ids = new Set(prev.map((p) => p.id))
+        const uniqueNew = data.posts.filter(
+          (p: Post) => !ids.has(p.id)
+        )
+        return [...prev, ...uniqueNew]
+      })
+
       setHasMore(data.hasMore)
-      setPage((prev) => prev + 1)
-    } catch (error) {
-      console.error("Failed to load posts:", error)
+      setPage(pageToLoad)
+    } catch (err) {
+      console.error("Failed to load posts", err)
     } finally {
+      isFetching.current = false
       setLoading(false)
     }
-  }, [page, loading, hasMore])
+  }
 
+  // 🔹 Initial load (page 1)
   useEffect(() => {
-    loadPosts()
+    fetchPosts(1)
   }, [])
 
+  // 🔹 Infinite scroll observer
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && hasMore && !loading) {
-          loadPosts()
+        if (entries[0].isIntersecting && hasMore && !isFetching.current) {
+          fetchPosts(page + 1)
         }
       },
       { threshold: 0.1 }
     )
 
-    const currentTarget = observerTarget.current
-    if (currentTarget) observer.observe(currentTarget)
+    const target = observerTarget.current
+    if (target) observer.observe(target)
 
     return () => {
-      if (currentTarget) observer.unobserve(currentTarget)
+      if (target) observer.unobserve(target)
     }
-  }, [hasMore, loading, loadPosts])
+  }, [page, hasMore])
 
   const stories = [
-    { username: "your story", imageUrl: "/user-profile.jpg", hasStory: false },
+    { username: "your story", imageUrl: "/user-profile.jpeg", hasStory: false },
     { username: "username", imageUrl: "/lush-forest-stream.png" },
     { username: "username", imageUrl: "/diverse-travelers-world-map.png" },
     { username: "username", imageUrl: "/diverse-food-spread.png" },
@@ -84,8 +99,8 @@ export default function FeedPage() {
   return (
     <div className="min-h-screen bg-white pb-16">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-white border-b border-gray-200 px-4 py-2.5">
-        <div className="flex items-center justify-between max-w-[470px] mx-auto">
+      <header className="sticky top-0 z-50 bg-white border-b px-4 py-2.5">
+        <div className="max-w-[470px] mx-auto">
           <h1
             className="text-2xl font-semibold"
             style={{ fontFamily: "'Billabong', cursive" }}
@@ -96,12 +111,12 @@ export default function FeedPage() {
       </header>
 
       {/* Stories */}
-      <div className="border-b border-gray-200 px-4 py-4 bg-white sticky top-[53px] z-40">
+      <div className="border-b px-4 py-4 bg-white sticky top-[53px] z-40">
         <div className="max-w-[470px] mx-auto overflow-x-auto scrollbar-hide">
-          <div className="flex gap-4 pb-1">
-            {stories.map((story, index) => (
+          <div className="flex gap-4">
+            {stories.map((story, i) => (
               <StoryCircle
-                key={index}
+                key={i}
                 username={story.username}
                 imageUrl={story.imageUrl}
                 hasStory={story.hasStory}
@@ -113,11 +128,9 @@ export default function FeedPage() {
 
       {/* Feed */}
       <main className="max-w-[470px] mx-auto">
-        <div className="divide-y divide-gray-100">
-          {posts.map((post) => (
-            <PostCard key={post.id} post={post} />
-          ))}
-        </div>
+        {posts.map((post) => (
+          <PostCard key={post.id} post={post} />
+        ))}
 
         {loading && (
           <div className="py-8 flex justify-center">
@@ -126,37 +139,22 @@ export default function FeedPage() {
         )}
 
         {!hasMore && posts.length > 0 && (
-          <div className="py-8 text-center text-gray-500 text-sm">
-            <p>You're all caught up!</p>
-            <p className="text-xs mt-1">You've seen all posts</p>
-          </div>
+          <p className="text-center text-sm text-gray-500 py-6">
+            You’re all caught up 🎉
+          </p>
         )}
 
         <div ref={observerTarget} className="h-10" />
       </main>
 
-      {/* Bottom Navbar (Lucide icons – SAME as ProfilePage) */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-[#dbdbdb] px-4 py-2 z-50">
-        <div className="flex justify-around items-center max-w-md mx-auto">
-          <Link href="/feed" className="p-2">
-            <Home className="w-6 h-6" />
-          </Link>
-
-          <button className="p-2">
-            <Search className="w-6 h-6" />
-          </button>
-
-          <button className="p-2">
-            <PlusSquare className="w-6 h-6" />
-          </button>
-
-          <button className="p-2">
-            <Clapperboard className="w-6 h-6" />
-          </button>
-
-          <Link href="/profile" className="p-2">
-            <User className="w-6 h-6" />
-          </Link>
+      {/* Bottom Nav */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t px-4 py-2">
+        <div className="flex justify-around max-w-md mx-auto">
+          <Link href="/feed"><Home /></Link>
+          <Search />
+          <PlusSquare />
+          <Clapperboard />
+          <Link href="/profile"><User /></Link>
         </div>
       </nav>
     </div>
